@@ -167,6 +167,8 @@ contract trapezeTest is Test {
         vm.startPrank(beef);
         nft.claim();
 
+        nft.addBasicCircle(beef, 0, 50, 100, 25, 'red');
+
         emit log_string(nft.tokenURI(nft.getTokenId(beef)));
 
     }

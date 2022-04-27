@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.12;
+pragma solidity 0.8.12;
 
 import {ERC721} from 'openzeppelin-contracts/contracts/token/ERC721/ERC721.sol';
 import {utils} from './Utils.sol';
@@ -16,6 +16,7 @@ import {json} from './JSON.sol';
 error nonTransferrable();
 
 contract trapeze is ERC721 {
+    using utils for uint256;
 
     uint256 TILE_SIZE = 300; // each NFT metadata is 300x300 
 
@@ -56,15 +57,17 @@ contract trapeze is ERC721 {
         bool success;
         bytes memory data;
 
-        for (uint256 i = 0; i < picture.elements.length; i++) {
-            (success, data) = address(this).staticcall(
-                abi.encodeWithSelector(
-                    picture.elements[i].functionSig, 
-                    picture.elements[i].props, 
-                    picture.elements[i].children
-                )
-            );
-            _returnedElements = string.concat(_returnedElements, abi.decode(data, (string)));
+        for (uint256 i = 0; i < 20; i++) {
+            if(picture.elements[i].functionSig != bytes4(0)) {
+                (success, data) = address(this).staticcall(
+                    abi.encodeWithSelector(
+                        picture.elements[i].functionSig, 
+                        picture.elements[i].props, 
+                        picture.elements[i].children
+                    )
+                );
+                _returnedElements = string.concat(_returnedElements, abi.decode(data, (string)));
+            }
         }
 
         return _returnedElements;
@@ -186,12 +189,35 @@ contract trapeze is ERC721 {
                     METADATA MANAGEMENT FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function updateElement(uint256 tokenId, uint256 slot, ELEMENT memory el) public {
+    function updateElement(uint256 _tokenId, uint256 _slot, ELEMENT memory _el) public {
+        require(_slot < 20, "TRAPEZE: SLOT INVALID");
+
+        pictures[_tokenId].elements[_slot] = _el;
 
     }
 
-    function updateElement(address tokenAddr, uint256 slot, ELEMENT memory el) public {
-        
+    function updateElement(address _tokenAddr, uint256 _slot, ELEMENT memory _el) public {
+        require(_slot < 20, "TRAPEZE: SLOT INVALID");
+        uint256 _tokenId = getTokenId(_tokenAddr);
+
+        pictures[_tokenId].elements[_slot] = _el;
+
+    }
+
+    function addBasicCircle(address tokenAddr, uint256 slot, uint256 cx, uint256 cy, uint256 r, string memory color) public {
+        ELEMENT memory circle = ELEMENT({
+            functionSig : this.Circle.selector,
+            props : string.concat(
+                    svg.prop('cx', cx.toString()),
+                    svg.prop('cy', cy.toString()),
+                    svg.prop('r', r.toString()),
+                    svg.prop('fill', color)
+                ),
+            children : '',
+            lastUpdate : block.timestamp
+        });
+
+        updateElement(tokenAddr, slot, circle);
     }
 
 
