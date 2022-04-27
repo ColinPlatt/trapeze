@@ -1,2 +1,4 @@
-ds-test/=/home/cgp/dev/trapeze/lib/solmate/lib/ds-test/src/
-solmate/=/home/cgp/dev/trapeze/lib/solmate/src/
+solmate/=lib/solmate/src/
+ds-test/=lib/ds-test/src/
+forge-std/=lib/forge-std/src/
+openzeppelin-contracts/=lib/openzeppelin-contracts/
