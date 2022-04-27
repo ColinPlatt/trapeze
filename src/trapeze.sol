@@ -35,7 +35,7 @@ contract trapeze is ERC721 {
     }
 
     struct PICTURE {
-        ELEMENT[] elements;
+        ELEMENT[20] elements;
     }
 
     mapping(uint256 => PICTURE) private pictures; //pictures[tokenId][PICTURE]
@@ -207,7 +207,7 @@ contract trapeze is ERC721 {
             lastUpdate: 1
         });        
 
-        pictures[tokenId].elements.push(blankEl); 
+        pictures[tokenId].elements[0] = blankEl; 
     }
 
     // NFT IDs are assigned to an address (and are thus not sequential), at claiming sequence kept and matched to the index
