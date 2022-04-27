@@ -192,6 +192,8 @@ contract trapeze is ERC721 {
     function updateElement(uint256 _tokenId, uint256 _slot, ELEMENT memory _el) public {
         require(_slot < 20, "TRAPEZE: SLOT INVALID");
 
+        _el.lastUpdate = block.timestamp;
+
         pictures[_tokenId].elements[_slot] = _el;
 
     }
@@ -199,6 +201,8 @@ contract trapeze is ERC721 {
     function updateElement(address _tokenAddr, uint256 _slot, ELEMENT memory _el) public {
         require(_slot < 20, "TRAPEZE: SLOT INVALID");
         uint256 _tokenId = getTokenId(_tokenAddr);
+
+        _el.lastUpdate = block.timestamp;
 
         pictures[_tokenId].elements[_slot] = _el;
 
@@ -214,7 +218,7 @@ contract trapeze is ERC721 {
                     svg.prop('fill', color)
                 ),
             children : '',
-            lastUpdate : block.timestamp
+            lastUpdate : 0
         });
 
         updateElement(tokenAddr, slot, circle);
