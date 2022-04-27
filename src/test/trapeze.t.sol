@@ -78,6 +78,27 @@ contract trapezeTest is Test {
  
     }
 
+    function testSequencing() public {
+        
+        address beef = address(0xBEEF);
+
+        vm.startPrank(beef);
+        nft.claim();
+        assertEq(nft.getSequence(beef),1);
+        vm.stopPrank();
+
+        vm.startPrank(address(0xABC));
+        nft.claim();
+        assertEq(nft.getSequence(address(0xABC)),2);
+        vm.stopPrank();
+
+        vm.startPrank(address(0xDEF));
+        nft.claim();
+        assertEq(nft.getSequence(address(0xDEF)),3);
+ 
+    }
+
+
     function testFailTransfer() public {
         
         address beef = address(0xBEEF);
@@ -122,11 +143,31 @@ contract trapezeTest is Test {
 
     }
 
-    function testPricing() public{
+    function _testPricing() public{
 
         for (uint256 i = 1; i<3 days; i+=3600) {
             emit log_uint(nft.getUpdatePrice(10 ether, i));
         }
+
+    }
+
+    function testViewBox() public {
+        address beef = address(0xBEEF);
+
+        vm.startPrank(beef);
+        nft.claim();
+
+        emit log_string(nft.viewBox(nft.getTokenId(beef)));
+
+    }
+
+    function testTokenUri() public {
+        address beef = address(0xBEEF);
+
+        vm.startPrank(beef);
+        nft.claim();
+
+        emit log_string(nft.tokenURI(nft.getTokenId(beef)));
 
     }
 

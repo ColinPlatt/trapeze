@@ -64,7 +64,7 @@ library svg {
                 );
     }
 
-        function path(string memory _d, string memory _props, string memory _children)
+    function path(string memory _d, string memory _props, string memory _children)
         internal
         pure
         returns (string memory)

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.12;
 
 import {ERC721} from 'openzeppelin-contracts/contracts/token/ERC721/ERC721.sol';
+import {utils} from './Utils.sol';
 import {svg} from './SVG.sol';
 import {json} from './JSON.sol';
 
@@ -34,19 +35,55 @@ contract trapeze is ERC721 {
     }
 
     struct PICTURE {
-        ELEMENT[20] elements;
+        ELEMENT[] elements;
     }
 
-    mapping(uint256 => PICTURE) private pictures; //pictures[NFTID(address)][PICTURE]
+    mapping(uint256 => PICTURE) private pictures; //pictures[tokenId][PICTURE]
 
 
     /*//////////////////////////////////////////////////////////////
                             VIEW-ONLY FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function returnPicture(uint256 tokenId) public view returns (string memory) {
+        string memory _returnedElements;
+        PICTURE storage picture = pictures[tokenId];
+
+        if(picture.elements[0].functionSig == bytes4(0)){
+            return ' ';
+        }
+
+        bool success;
+        bytes memory data;
+
+        for (uint256 i = 0; i < picture.elements.length; i++) {
+            (success, data) = address(this).staticcall(
+                abi.encodeWithSelector(
+                    picture.elements[i].functionSig, 
+                    picture.elements[i].props, 
+                    picture.elements[i].children
+                )
+            );
+            _returnedElements = string.concat(_returnedElements, abi.decode(data, (string)));
+        }
+
+        return _returnedElements;
+    }
+
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        
-        return 'x';
+        //we return a URI for tokens which have been claimed and dismissed, but not for ones that have not been claimed
+        require(getSequence(address(uint160(tokenId))) <= sequence, 'ERC721Metadata: URI query for nonexistent token');
+
+        string memory returnedElements = returnPicture(tokenId);
+
+        return svg._svg(
+                string.concat(
+                    viewBox(tokenId),
+                    svg.prop('preserveAspectRatio', 'xMinYMin meet'),
+                    svg.prop('style', 'background:#000', true)
+                ),
+                returnedElements
+        );
     }
 
     // Token IDs are the uint256 representation of their owners' address
@@ -60,10 +97,10 @@ contract trapeze is ERC721 {
 
     //Inspired by https://github.com/pxlgen/contracts/blob/master/contracts/PxlGen.sol
     function getCoordinates(address tokenAddr) public view returns (uint256 group, uint256 x, uint256 y) {
-        uint256 index = mintSequence[getTokenId(tokenAddr)];
-        require(index >= 1, "Invalid index");
-        group = index / 100;
-        uint256 order = (index-1) % 100;
+        uint256 _sequence = mintSequence[getTokenId(tokenAddr)];
+        require(_sequence >= 1, "Invalid sequence");
+        group = _sequence / 100;
+        uint256 order = (_sequence-1) % 100;
         
         x = order % 10 * TILE_SIZE;
         y = order / 10 * TILE_SIZE;
@@ -71,10 +108,10 @@ contract trapeze is ERC721 {
         return (group, x, y);
     }
 
-    function getCoordinates(uint256 index) public view returns (uint256 group, uint256 x, uint256 y) {
-        require(index >= 1, "Invalid index");
-        group = index / 100;
-        uint256 order = (index-1) % 100;
+    function getCoordinates(uint256 _sequence) public view returns (uint256 group, uint256 x, uint256 y) {
+        require(_sequence >= 1, "Invalid sequence");
+        group = _sequence / 100;
+        uint256 order = (_sequence-1) % 100;
         
         x = order % 10 * TILE_SIZE;
         y = order / 10 * TILE_SIZE;
@@ -83,23 +120,104 @@ contract trapeze is ERC721 {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            METADATA FUNCTIONS
+                        SVG ELEMENT FUNCTION
     //////////////////////////////////////////////////////////////*/
 
+    function viewBox(uint256 tokenId) public view returns (string memory) {
+        (,uint256 x, uint256 y) = getCoordinates(mintSequence[tokenId]);
 
-   
+        return svg.prop(
+            'viewBox', 
+            string.concat(
+                utils.toString(x),
+                ' ',
+                utils.toString(y),
+                ' 300 300'
+            )
+        );
+
+    }
+
+    function Circle(string memory props, string memory children) public pure returns (string memory) {
+        return svg.circle(props, children);
+    }
+
+    function Ellipse(string memory props, string memory children) public pure returns (string memory) {
+        return svg.ellipse(props, children);
+    }
+
+    function Line(string memory props, string memory children) public pure returns (string memory) {
+        return svg.line(props, children);
+    }
+
+    function Polygon(string memory props, string memory children) public pure returns (string memory) {
+        return svg.polygon(props, children);
+    }
+
+    function Polyline(string memory props, string memory children) public pure returns (string memory) {
+        return svg.polyline(props, children);
+    }
+
+    function Rect(string memory props, string memory children) public pure returns (string memory) {
+        return svg.rect(props, children);
+    }
+
+    function Text(string memory props, string memory children) public pure returns (string memory) {
+        return svg.text(props, children);
+    }
+
+    function Animate(string memory props, string memory children) public pure returns (string memory) {
+        return svg.animate(props);
+    }
+
+    function Filter(string memory props, string memory children) public pure returns (string memory) {
+        return svg.filter(props, children);
+    }
+
+    function LinearGradient(string memory props, string memory children) public pure returns (string memory) {
+        return svg.linearGradient(props, children);
+    }
+
+    function RadialGradient(string memory props, string memory children) public pure returns (string memory) {
+        return svg.radialGradient(props, children);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    METADATA MANAGEMENT FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function updateElement(uint256 tokenId, uint256 slot, ELEMENT memory el) public {
+
+    }
+
+    function updateElement(address tokenAddr, uint256 slot, ELEMENT memory el) public {
+        
+    }
+
 
     /*//////////////////////////////////////////////////////////////
                         MINT AND BURN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function initializePicture(uint256 tokenId) internal {
+        ELEMENT memory blankEl = ELEMENT({
+            functionSig : bytes4(0),
+            props: '',
+            children: '',
+            lastUpdate: 1
+        });        
+
+        pictures[tokenId].elements.push(blankEl); 
+    }
+
     // NFT IDs are assigned to an address (and are thus not sequential), at claiming sequence kept and matched to the index
     function claim() public {
         
         //check that a wallet has not been assigned an ID before, if not increment the sequence counter
-        if (mintSequence[getTokenId(msg.sender)] != 0) {
+        if (mintSequence[getTokenId(msg.sender)] == 0) {
             sequence++;
-            mintSequence[getTokenId(msg.sender)] = sequence; 
+            mintSequence[getTokenId(msg.sender)] = sequence;
+            initializePicture(getTokenId(msg.sender)); 
         } else {
             // pay me
         }
