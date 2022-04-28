@@ -170,6 +170,7 @@ contract trapeze is ERC721 {
     }
 
     function Animate(string memory props, string memory children) public pure returns (string memory) {
+        children; // unused by the library
         return svg.animate(props);
     }
 
@@ -183,6 +184,10 @@ contract trapeze is ERC721 {
 
     function RadialGradient(string memory props, string memory children) public pure returns (string memory) {
         return svg.radialGradient(props, children);
+    }
+
+    function G(string memory props, string memory children) public pure returns (string memory) {
+        return svg.g(props, children);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -208,7 +213,77 @@ contract trapeze is ERC721 {
 
     }
 
-    function addBasicCircle(address tokenAddr, uint256 slot, uint256 cx, uint256 cy, uint256 r, string memory color) public {
+    enum Elements {
+        circle,
+        ellipse,
+        line,
+        polygon,
+        polyline,
+        rect,
+        text,
+        animate,
+        filter,
+        linearGradient,
+        radialGradient,
+        g
+    }
+
+    function getSelector(Elements _element) internal pure returns (bytes4 _funcSelect) {
+        
+        if (_element == Elements.circle) {
+            return this.Circle.selector;
+        }
+        if (_element == Elements.ellipse) {
+            return this.Ellipse.selector;
+        }
+        if (_element == Elements.line) {
+            return this.Line.selector;
+        }
+        if (_element == Elements.polygon) {
+            return this.Polygon.selector;
+        }
+        if (_element == Elements.polyline) {
+            return this.Polyline.selector;
+        }
+        if (_element == Elements.rect) {
+            return this.Rect.selector;
+        }
+        if (_element == Elements.text) {
+            return this.Text.selector;
+        }
+        if (_element == Elements.animate) {
+            return this.Animate.selector;
+        }
+        if (_element == Elements.filter) {
+            return this.Filter.selector;
+        }
+        if (_element == Elements.linearGradient) {
+            return this.LinearGradient.selector;
+        }
+        if (_element == Elements.radialGradient) {
+            return this.RadialGradient.selector;
+        }
+        if (_element == Elements.g) {
+            return this.G.selector;
+        }
+    }
+
+    function addElement(address tokenAddr, uint256 slot, Elements element, string memory keyProp, string memory valProp) public {
+            ELEMENT memory circle = ELEMENT({
+            functionSig : getSelector(element),
+            props : string.concat(
+                    svg.prop(keyProp, valProp),
+                    svg.prop('fill', 'red')
+                ),
+            children : '',
+            lastUpdate : 0
+        });
+
+        updateElement(tokenAddr, slot, circle);
+    }
+
+
+    function addCircle(address tokenAddr, uint256 slot, uint256 cx, uint256 cy, uint256 r, string memory color) public {
         ELEMENT memory circle = ELEMENT({
             functionSig : this.Circle.selector,
             props : string.concat(
@@ -286,7 +361,6 @@ contract trapeze is ERC721 {
             revert nonTransferrable();
         }
     }
-
 
     constructor () ERC721('trapeze', unicode'🪤') {}
 
